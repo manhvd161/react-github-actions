@@ -1,11 +1,11 @@
 name: react-github-action
 on:
-  push:
-    branches: [master]
+  release:
+    types: [ published ]
 
 jobs:
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps: 
       - name: Checkout
         uses: actions/checkout@v2
@@ -13,8 +13,8 @@ jobs:
       - name: Login Docker Hub
         uses: docker/login-action@v1
         with: 
-          username: ${{secrets.DOCKERHUB_USERNAME}}
-          password: ${{secrets.DOCKERHUB_ACCESSTOKEN}}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESSTOKEN }}
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -23,8 +23,7 @@ jobs:
       - name: Cache Docker Image Layer
         uses: actions/cache@v2
         with:
-          # npm cache files are stored in `~/.npm` on Linux/macOS
-          path: ~/.npm
+          path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
@@ -35,11 +34,11 @@ jobs:
         with: 
           context: ./
           file: Dockerfile
-          builder: ${{steps.buildx.outputs.name}}
+          builder: ${{ steps.buildx.outputs.name }}
           push: true
-          tags: ${{secrets.DOCKERHUB_USERNAME}}/react-github-action
-          cache-from: type=local,src=~/.npm
-          cacche-to: type=local,dest=~/.npm
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/react-github-action:${{ github.event.release.tag_name }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
 
       - name: Verify
-        run: echo ${{steps.docker_build.outputs.digest}}
+        run: echo ${{ steps.docker_build.outputs.digest }}
