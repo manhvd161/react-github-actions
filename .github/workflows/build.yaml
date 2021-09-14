@@ -20,6 +20,15 @@ jobs:
         uses: docker/setup-buildx-action@v1
         id: buildx
 
+      - name: Cache Docker Image Layer
+        uses: actions/cache@v2
+        with:
+          # npm cache files are stored in `~/.npm` on Linux/macOS
+          path: ~/.npm
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v2
         id: docker_build
@@ -29,6 +38,8 @@ jobs:
           builder: ${{steps.buildx.outputs.name}}
           push: true
           tags: ${{secrets.DOCKERHUB_USERNAME}}/react-github-action
+          cache-from: type=local,src=~/.npm
+          cacche-to: type=local,dest=~/.npm
 
       - name: Verify
         run: echo ${{steps.docker_build.outputs.digest}}
